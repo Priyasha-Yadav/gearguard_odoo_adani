@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global input text color fix */
+input, select, textarea {
+  color: #1f2937 !important;
+}
+
+input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Ensure proper text colors in forms */
+.form-input, .form-select, .form-textarea {
+  color: #1f2937 !important;
+}
+
+/* Fix for any remaining white text issues */
+* {
+  color: inherit;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: #f8fafc;
+}
