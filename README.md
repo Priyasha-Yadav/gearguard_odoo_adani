@@ -4,11 +4,6 @@ A comprehensive MERN stack maintenance management system that helps companies tr
 
 ## Features
 
-<img src="./readme_assets/dashboard.png"  height="300" alt="Dashboard UI"/>
-<img src="./readme_assets/equip.png"  height="300" alt="Equipment UI"/>
-<img src="./readme_assets/maintenance.png"  height="300" alt="Maintenance UI"/>
-<img src="./readme_assets/calender.png"  height="300" alt="Calender UI"/>
-
 ### Core Functionality
 - **Equipment Management**: Track all company assets with detailed information
 - **Maintenance Teams**: Create and manage specialized maintenance teams
