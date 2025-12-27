@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
   try {
     const { department, assignedTo, category, page = 1, limit = 10 } = req.query;
     const filter = {};
-    
+
     if (department) filter.department = department;
     if (assignedTo) filter.assignedTo = assignedTo;
     if (category) filter.category = category;
@@ -20,24 +20,10 @@ router.get('/', async (req, res) => {
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
 
-    // Add open requests count for each equipment
-    const equipmentWithCounts = await Promise.all(
-      equipment.map(async (item) => {
-        const openRequestsCount = await MaintenanceRequest.countDocuments({
-          equipment: item._id,
-          stage: { $in: ['New', 'In Progress'] }
-        });
-        return {
-          ...item.toObject(),
-          openRequestsCount
-        };
-      })
-    );
-
     const total = await Equipment.countDocuments(filter);
 
     res.json({
-      equipment: equipmentWithCounts,
+      equipment,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
       total
@@ -88,20 +74,16 @@ router.get('/:id', async (req, res) => {
 
 
 
-
 router.post('/', async (req, res) => {
   try {
     const data = { ...req.body };
 
-    // AGGRESSIVE CLEANUP: Remove ANY field that is an empty string
-    // This is the safest way to support your specific frontend code
     Object.keys(data).forEach(key => {
       if (data[key] === "" || data[key] === null || data[key] === undefined) {
         delete data[key];
       }
     });
 
-    // Ensure numeric fields are Numbers
     if (data.maintenanceFrequency) {
       data.maintenanceFrequency = Number(data.maintenanceFrequency);
     }
@@ -131,8 +113,8 @@ router.put('/:id', async (req, res) => {
       req.body,
       { new: true, runValidators: true }
     ).populate('assignedTo', 'name email')
-     .populate('maintenanceTeam', 'name specialization')
-     .populate('defaultTechnician', 'name email');
+      .populate('maintenanceTeam', 'name specialization')
+      .populate('defaultTechnician', 'name email');
 
     if (!equipment) {
       return res.status(404).json({ message: 'Equipment not found' });
@@ -152,8 +134,8 @@ router.delete('/:id', async (req, res) => {
     });
 
     if (hasOpenRequests) {
-      return res.status(400).json({ 
-        message: 'Cannot delete equipment with open maintenance requests' 
+      return res.status(400).json({
+        message: 'Cannot delete equipment with open maintenance requests'
       });
     }
 
@@ -172,7 +154,7 @@ router.get('/:id/maintenance', async (req, res) => {
   try {
     const { stage, page = 1, limit = 10 } = req.query;
     const filter = { equipment: req.params.id };
-    
+
     if (stage) filter.stage = stage;
 
     const requests = await MaintenanceRequest.find(filter)
