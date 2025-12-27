@@ -145,32 +145,77 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// router.post('/', async (req, res) => {
+//   try {
+//     const { equipment, ...requestData } = req.body;
+    
+//     const equipmentData = await Equipment.findById(equipment);
+//     if (!equipmentData) {
+//       return res.status(400).json({ message: 'Equipment not found' });
+//     }
+
+//     const request = new MaintenanceRequest({
+//       ...requestData,
+//       equipmentCategory: equipmentData.category,
+//       assignedTeam: equipmentData.maintenanceTeam
+//     });
+
+//     const savedRequest = await request.save()
+//       .then(req => req.populate('equipment', 'name serialNumber category')
+//         .then(req => req.populate('assignedTeam', 'name specialization')
+//         .then(req => req.populate('assignedTechnician', 'name email')
+//         .then(req => req.populate('requestedBy', 'name email')))));
+    
+//     res.status(201).json(savedRequest);
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// });
+
+
 router.post('/', async (req, res) => {
   try {
     const { equipment, ...requestData } = req.body;
     
+    // 1. CLEANUP: Remove ANY field that is an empty string ("")
+    // This prevents BSON errors for ObjectIDs and "Invalid Date" for scheduledDate
+    Object.keys(requestData).forEach(key => {
+      if (requestData[key] === "" || requestData[key] === null) {
+        delete requestData[key];
+      }
+    });
+
     const equipmentData = await Equipment.findById(equipment);
     if (!equipmentData) {
       return res.status(400).json({ message: 'Equipment not found' });
     }
 
+    // 2. Create the request
     const request = new MaintenanceRequest({
       ...requestData,
+      equipment, // Ensure the ID is passed
       equipmentCategory: equipmentData.category,
-      assignedTeam: equipmentData.maintenanceTeam
+      // Only assign the team if it wasn't manually selected in the form
+      assignedTeam: requestData.assignedTeam || equipmentData.maintenanceTeam
     });
 
-    const savedRequest = await request.save()
-      .then(req => req.populate('equipment', 'name serialNumber category')
-        .then(req => req.populate('assignedTeam', 'name specialization')
-        .then(req => req.populate('assignedTechnician', 'name email')
-        .then(req => req.populate('requestedBy', 'name email')))));
+    // 3. Save and Populate
+    const savedRequest = await request.save();
     
-    res.status(201).json(savedRequest);
+    const populatedRequest = await MaintenanceRequest.findById(savedRequest._id)
+      .populate('equipment', 'name serialNumber category')
+      .populate('assignedTeam', 'name specialization')
+      .populate('assignedTechnician', 'name email')
+      .populate('requestedBy', 'name email');
+    
+    res.status(201).json(populatedRequest);
   } catch (error) {
+    console.error("Backend Error:", error.message);
     res.status(400).json({ message: error.message });
   }
 });
+
+
 
 router.put('/:id', async (req, res) => {
   try {
@@ -211,14 +256,6 @@ router.patch('/:id/stage', async (req, res) => {
 
     if (!request) {
       return res.status(404).json({ message: 'Maintenance request not found' });
-    }
-
-    // Scrap Logic: If request is moved to Scrap, mark equipment as Out of Service
-    if (stage === 'Scrap' && request.equipment) {
-      await Equipment.findByIdAndUpdate(request.equipment._id, {
-        status: 'Out of Service',
-        notes: `Equipment scrapped due to maintenance request: ${request.subject}`
-      });
     }
 
     res.json(request);
